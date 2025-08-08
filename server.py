@@ -2,16 +2,20 @@ import os
 import json
 from flask import Flask, jsonify, Response, send_file
 
+# --------- إعداد مسار البيانات ----------
 def resolve_results_dir():
     env_dir = os.environ.get("RESULTS_DIR")
     if env_dir and os.path.isdir(env_dir):
         return env_dir
+
     render_dir = "/opt/render/project/src/data"
     if os.path.isdir(render_dir):
         return render_dir
+
     custom_dir = os.environ.get("RESULTS_DIR_CUSTOM")
     if custom_dir and os.path.isdir(custom_dir):
         return custom_dir
+
     local_dir = os.path.join(os.path.dirname(__file__), "data")
     return local_dir
 
@@ -23,11 +27,11 @@ latest_txt = ""
 
 app = Flask(__name__)
 
-def safe_print(text):
+def safe_print(msg):
     try:
-        print(text, flush=True)
+        print(msg, flush=True)
     except UnicodeEncodeError:
-        print(text.encode('utf-8', errors='replace').decode('utf-8'), flush=True)
+        print(str(msg).encode("utf-8", errors="replace").decode("utf-8"), flush=True)
 
 def find_latest_file(extension):
     try:
@@ -36,8 +40,8 @@ def find_latest_file(extension):
             for f in os.listdir(DIRECTORY)
             if f.lower().endswith(extension.lower())
         ]
-    except FileNotFoundError:
-        safe_print(f"[WARN] DIRECTORY not found: {DIRECTORY}")
+    except Exception as e:
+        safe_print(f"[WARN] listdir({DIRECTORY}) failed: {e}")
         return None
     if not files:
         safe_print(f"[INFO] No *{extension} files in {DIRECTORY}")
@@ -49,12 +53,13 @@ def find_latest_file(extension):
 def load_latest_files():
     global latest_json, latest_txt
     safe_print(f"[BOOT] Scanning dir: {DIRECTORY}")
-    json_path = find_latest_file('.json')
-    txt_path  = find_latest_file('.txt')
+
+    json_path = find_latest_file(".json")
+    txt_path  = find_latest_file(".txt")
 
     if json_path:
         try:
-            with open(json_path, 'r', encoding='utf-8') as f:
+            with open(json_path, "r", encoding="utf-8") as f:
                 latest_json = json.load(f)
             safe_print(f"[OK] JSON loaded: {os.path.basename(json_path)}")
         except Exception as e:
@@ -65,7 +70,7 @@ def load_latest_files():
 
     if txt_path:
         try:
-            with open(txt_path, 'r', encoding='utf-8') as f:
+            with open(txt_path, "r", encoding="utf-8") as f:
                 latest_txt = f.read()
             safe_print(f"[OK] TXT loaded: {os.path.basename(txt_path)}")
         except Exception as e:
@@ -74,20 +79,14 @@ def load_latest_files():
     else:
         latest_txt = ""
 
-@app.before_first_request
-def _warmup_load_files():
-    safe_print(f"[WARMUP] Using DIRECTORY={DIRECTORY}")
-    try:
-        listing = os.listdir(DIRECTORY)
-        safe_print(f"[WARMUP] Files in DIRECTORY: {listing}")
-    except Exception as e:
-        safe_print(f"[WARMUP] listdir failed: {e}")
-    load_latest_files()
+# 🔥 حمّل البيانات مرة واحدة عند الاستيراد (متوافق مع Flask 3.1 + Gunicorn)
+load_latest_files()
 
+# --------- المسارات ----------
 @app.route("/")
 def index():
     if os.path.exists(HTML_FILE):
-        return send_file(HTML_FILE, mimetype='text/html')
+        return send_file(HTML_FILE, mimetype="text/html")
     else:
         return f"<h2>❌ لم يتم العثور على الملف wep.html في {HTML_FILE}</h2>", 404
 
@@ -101,20 +100,26 @@ def get_json():
 @app.route("/data/text")
 def get_text():
     if latest_txt:
-        return Response(latest_txt, mimetype='text/plain; charset=utf-8')
+        return Response(latest_txt, mimetype="text/plain; charset=utf-8")
     else:
-        return Response(f"⚠️ لم يتم العثور على تقرير TXT داخل {DIRECTORY}", mimetype='text/plain; charset=utf-8'), 404
+        return Response(f"⚠️ لم يتم العثور على تقرير TXT داخل {DIRECTORY}", mimetype="text/plain; charset=utf-8"), 404
 
-# مسار فحص مؤقت
+# فحص ونشِر معلومات مفيدة
 @app.route("/debug/list")
 def debug_list():
     try:
         items = os.listdir(DIRECTORY)
-        return jsonify({"directory": DIRECTORY, "items": items})
     except Exception as e:
-        return jsonify({"directory": DIRECTORY, "error": str(e)}), 500
+        return jsonify({"version": "v4", "directory": DIRECTORY, "error": str(e)}), 500
 
-# تشغيل محلي فقط
+    commit = os.environ.get("RENDER_GIT_COMMIT", "UNKNOWN")
+    return jsonify({
+        "version": "v4",
+        "directory": DIRECTORY,
+        "items": items,
+        "render_git_commit": commit
+    })
+
 def run_server_dev():
     port = int(os.environ.get("PORT", 5000))
     safe_print(f"🚀 Dev server at http://0.0.0.0:{port}")
