@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تقرير المطابقات العقارية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            direction: rtl;
+        }
+
+        header {
+            background-color: #007b83;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .container {
+            margin: 30px auto;
+            max-width: 1200px;
+            padding: 10px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .buttons-container {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-top: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            border: none;
+            background-color: #e2e8f0;
+            color: #4a5568;
+        }
+        .btn:hover {
+            background-color: #cbd5e0;
+            transform: translateY(-2px);
+        }
+        .btn-active {
+            background-color: #007b83;
+            color: white;
+        }
+        .btn-active:hover {
+            background-color: #005f6b;
+        }
+
+        .match-pair {
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            margin-bottom: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        @media (min-width: 768px) {
+            .match-pair {
+                flex-direction: row;
+            }
+        }
+
+        .column {
+            flex: 1;
+            padding: 20px;
+            border-left: 1px solid #e0e0e0;
+        }
+
+        .column:last-child {
+            border-left: none;
+        }
+
+        @media (max-width: 767px) {
+            .column {
+                border-left: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            .column:last-child {
+                border-bottom: none;
+            }
+        }
+
+        .column h3 {
+            margin-top: 0;
+            color: #007b83;
+            font-size: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .column p {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        .column strong {
+            color: #333;
+        }
+
+        .raw-report-pre {
+            background-color: #f4f6f8;
+            border: 1px solid #d1d9e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            max-height: 70vh;
+            overflow-y: auto;
+            margin-top: 1.5rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #777;
+            margin-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>📊 تقرير المطابقة العقارية</h1>
+        <p>عرض وتحليل تقارير مطابقة الطلبات والعروض</p>
+    </header>
+
+    <div class="buttons-container">
+        <button id="show-structured-btn" class="btn btn-active">عرض البيانات المنظمة</button>
+        <button id="show-raw-btn" class="btn">عرض التقرير الخام</button>
+        <button id="refresh-btn" class="btn">تحديث البيانات</button>
+    </div>
+
+    <div id="content-display"></div>
+
+    <footer>
+        <p>© 2025 - تم إنشاء التقرير آلياً</p>
+    </footer>
+</div>
+
+<script>
+    const contentDisplay = document.getElementById('content-display');
+    const showStructuredBtn = document.getElementById('show-structured-btn');
+    const showRawBtn = document.getElementById('show-raw-btn');
+    const refreshBtn = document.getElementById('refresh-btn');
+
+    let jsonData = {};
+    let rawTextData = '';
+
+    async function fetchData() {
+        try {
+            const [jsonRes, textRes] = await Promise.all([
+                fetch("/data/json"),
+                fetch("/data/text")
+            ]);
+            jsonData = await jsonRes.json();
+            rawTextData = await textRes.text();
+        } catch (error) {
+            console.error("فشل في تحميل البيانات:", error);
+        }
+    }
+
+    function renderStructuredData() {
+        contentDisplay.innerHTML = '';
+
+        if (!jsonData.matches || jsonData.matches.length === 0) {
+            contentDisplay.innerHTML = '<p style="text-align:center; color:red">❌ لا توجد بيانات لعرضها حالياً</p>';
+            return;
+        }
+
+        jsonData.matches.forEach(match => {
+            const html = `
+                <div class="match-pair">
+                    <div class="column">
+                        <h3>🔍 معلومات الطلب</h3>
+                        <p><strong>نوع العقار:</strong> ${match.property_type}</p>
+                        <p><strong>المنطقة:</strong> ${match.area}</p>
+                        <p><strong>السعر المطلوب:</strong> ${match.requested_price}</p>
+                        <p><strong>رقم الجوال:</strong> ${match.requester_phone}</p>
+                        <p><strong>القروب:</strong> ${match.request_group}</p>
+                        <p><strong>النص الأصلي:</strong> ${match.request_text}</p>
+                    </div>
+                    <div class="column">
+                        <h3>🏠 معلومات العرض</h3>
+                        <p><strong>نوع العقار:</strong> ${match.property_type}</p>
+                        <p><strong>المنطقة:</strong> ${match.area}</p>
+                        <p><strong>السعر المعروض:</strong> ${match.offered_price}</p>
+                        <p><strong>رقم الجوال:</strong> ${match.offerer_phone}</p>
+                        <p><strong>القروب:</strong> ${match.offer_group}</p>
+                        <p><strong>النص الأصلي:</strong> ${match.offer_text}</p>
+                    </div>
+                </div>`;
+            contentDisplay.innerHTML += html;
+        });
+
+        showStructuredBtn.classList.add('btn-active');
+        showRawBtn.classList.remove('btn-active');
+    }
+
+    function renderRawData() {
+        contentDisplay.innerHTML = `<pre class="raw-report-pre">${rawTextData.trim()}</pre>`;
+        showRawBtn.classList.add('btn-active');
+        showStructuredBtn.classList.remove('btn-active');
+    }
+
+    showStructuredBtn.addEventListener('click', renderStructuredData);
+    showRawBtn.addEventListener('click', renderRawData);
+    refreshBtn.addEventListener('click', async () => {
+        await fetchData();
+        if (showStructuredBtn.classList.contains('btn-active')) {
+            renderStructuredData();
+        } else {
+            renderRawData();
+        }
+    });
+
+    window.onload = async () => {
+        await fetchData();
+        renderStructuredData();
+    };
+</script>
+</body>
+</html>
