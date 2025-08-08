@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>الرئيسية – الودجات المباشرة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* الألوان الأساسية */
+            --primary-bg: #0a0e13;
+            --glass-bg: rgba(15, 20, 30, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-hover-border: rgba(255, 255, 255, 0.15);
+            
+            /* النصوص */
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.85);
+            --text-tertiary: rgba(255, 255, 255, 0.65);
+            --text-accent: #64b5f6;
+            
+            /* الظلال والتأثيرات */
+            --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.12);
+            --shadow-medium: 0 8px 32px rgba(0, 0, 0, 0.18);
+            --shadow-strong: 0 16px 48px rgba(0, 0, 0, 0.25);
+            --blur-strength: 20px;
+            --border-radius: 18px;
+            --border-radius-small: 12px;
+
+            /* مقاسات نمطية للودجات */
+            --widget-min: 260px;
+            --widget-row: 180px;
+            
+            /* المساحات */
+            --spacing-xs: 8px;
+            --spacing-sm: 12px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            
+            /* التدرجات اللونية */
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-warm: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-cool: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --gradient-sunset: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --gradient-ocean: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --gradient-cosmic: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            
+            /* الخلفية المتحركة */
+            --bg-animation-colors: #667eea, #764ba2, #f093fb, #f5576c, #4facfe, #00f2fe, #fa709a, #fee140;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: 'Inter', 'Amiri', ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            font-optical-sizing: auto;
+            font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+        }
+
+        body {
+            background: var(--primary-bg);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        /* الخلفية المتحركة */
+        .canvas {
+            position: fixed;
+            inset: 0;
+            width: 100vw; height: 100vh;
+            overflow: hidden; display: flex;
+        }
+        .glass {
+            position: absolute; inset: 0;
+            background: linear-gradient(45deg, var(--bg-animation-colors));
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            opacity: 0.15; filter: blur(100px) saturate(1.5) brightness(1.2);
+            will-change: background-position;
+        }
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            25% { background-position: 100% 0%; }
+            50% { background-position: 100% 100%; }
+            75% { background-position: 0% 100%; }
+        }
+        .grain {
+            position: absolute; inset: -10%;
+            opacity: 0.03;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/><feComponentTransfer><feFuncA type="discrete" tableValues="0 0.5 0 0.3 0"/></feComponentTransfer></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)"/></svg>');
+            mix-blend-mode: overlay; pointer-events: none;
+        }
+
+        /* شريط الحالة */
+        .status {
+            position: absolute; top: var(--spacing-md); right: var(--spacing-lg);
+            height: 40px; display: flex; align-items: center; justify-content: center;
+            padding: 0 var(--spacing-md);
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius-small);
+            backdrop-filter: blur(var(--blur-strength)); -webkit-backdrop-filter: blur(var(--blur-strength));
+            color: var(--text-primary); font-weight: 600; font-size: 14px; z-index: 100;
+            box-shadow: var(--shadow-soft);
+            transition: all .3s cubic-bezier(.4,0,.2,1);
+        }
+        .status:hover { background: rgba(15,20,30,.6); border-color: var(--glass-hover-border); transform: translateY(-2px); }
+
+        /* تخطيط الصفحة — شبكة ثنائية الأعمدة مع عمود جانبي ثابت */
+        .main-container {
+            position: absolute;
+            inset: 80px var(--spacing-xl) var(--spacing-xl) var(--spacing-xl);
+            display: grid;
+            grid-template-columns: 1fr clamp(320px, 28vw, 400px);
+            grid-template-rows: 1fr;
+            gap: var(--spacing-xl);
+            align-items: start;
+        }
+
+        /* شبكة الودجات: كثافة ذكية + مناطق */
+        .left-panel {
+            min-width: 0;
+            height: 100%;
+            display: grid;
+            grid-auto-flow: dense;
+            grid-auto-rows: var(--widget-row);
+            grid-template-columns: repeat(auto-fill, minmax(var(--widget-min), 1fr));
+            gap: var(--spacing-lg);
+            align-content: start;
+        }
+
+        /* عمود التطبيقات (بدون ترحيل سلبي) */
+        .right-panel {
+            position: sticky;
+            top: 88px;
+            height: fit-content;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: var(--spacing-lg);
+            padding: var(--spacing-xl);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(var(--blur-strength));
+            -webkit-backdrop-filter: blur(var(--blur-strength));
+            box-shadow: var(--shadow-soft);
+        }
+
+        .app-subtitle {
+            color: var(--text-secondary);
+            font-size: 18px;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: -0.02em;
+        }
+
+        .apps {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-md);
+        }
+
+        /* زر التطبيق */
+        .app-button {
+            width: 100%;
+            height: 76px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            color: var(--text-primary);
+            font-size: 16px; font-weight: 700;
+            cursor: pointer;
+            transition: all .35s cubic-bezier(.23,1,.32,1);
+            display: flex; align-items: center; justify-content: center; gap: var(--spacing-md);
+            text-decoration: none; position: relative; overflow: hidden;
+        }
+        .app-button::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+            opacity: 0; transition: opacity .35s ease;
+        }
+        .app-button .icon { font-size: 24px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+        .app-button:hover { transform: translateY(-4px); box-shadow: var(--shadow-medium); border-color: var(--glass-hover-border); background: rgba(15,20,30,.55); }
+        .app-button:hover::before { opacity: 1; }
+
+        /* الودجات */
+        .widget {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-lg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur-strength));
+            -webkit-backdrop-filter: blur(var(--blur-strength));
+            color: var(--text-primary);
+            box-shadow: var(--shadow-soft);
+            transition: transform .35s, box-shadow .35s, border-color .35s, background .35s;
+            position: relative; overflow: hidden; min-width: 0;
+        }
+        .widget::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+            opacity: 0; transition: opacity .35s ease;
+        }
+        .widget:hover { transform: translateY(-6px); box-shadow: var(--shadow-medium); border-color: var(--glass-hover-border); background: rgba(15,20,30,.5); }
+        .widget:hover::before { opacity: 1; }
+
+        .widget .title {
+            display: flex; align-items: center; gap: .5rem;
+            font-weight: 800; font-size: 14px; letter-spacing: .3px; opacity: .95;
+        }
+        .widget .content {
+            display: grid; align-content: center; gap: .25rem; min-width: 0;
+        }
+        .widget .value {
+            font-size: clamp(28px, 4.5vw, 40px);
+            font-weight: 900; line-height: 1;
+            background: linear-gradient(135deg, #ffffff, #e8e8e8);
+            background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .widget .sub { font-size: 13px; opacity: .85; color: var(--text-secondary); line-height: 1.4; font-weight: 600; }
+
+        /* أحجام ثابتة اختيارية */
+        .widget--tall { grid-row: span 2; }
+        .widget--wide { grid-column: span 2; }
+
+        /* ودجة الأذكار */
+        #wgAdhkar { background: linear-gradient(135deg, rgba(15,20,30,.6), rgba(25,30,40,.4)); }
+        #wgAdhkar .value { font-size: clamp(16px, 2.6vw, 20px); font-weight: 700; -webkit-text-fill-color: var(--text-primary); white-space: normal; line-height: 1.6; text-align: center; padding: 0 var(--spacing-sm); }
+        #wgAdhkar .content { text-align: center; padding: 0 var(--spacing-md); }
+        #wgAdhkar .sub { text-align: center; font-size: 12px; opacity: .7; color: var(--text-tertiary); margin-top: var(--spacing-xs); }
+
+        /* تمييز لونية حسب الودجة */
+        #wgCal    { background: linear-gradient(135deg, rgba(103,126,234,.1), rgba(118,75,162,.1)); }
+        #wgClock  { background: linear-gradient(135deg, rgba(240,147,251,.1), rgba(245,87,108,.1)); }
+        #wgTemp   { background: linear-gradient(135deg, rgba(79,172,254,.1), rgba(0,242,254,.1)); }
+        #wgWeather{ background: linear-gradient(135deg, rgba(250,112,154,.1), rgba(254,225,64,.1)); }
+
+        /* حالات التحميل */
+        .widget.loading .value::after {
+            content: ''; display: inline-block; width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,.2); border-radius: 50%;
+            border-top-color: var(--text-accent); animation: spin 1s linear infinite; margin-inline-start: var(--spacing-xs);
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error { color: #ff6b6b !important; opacity: .9; }
+
+        /* إمكانية الوصول */
+        .widget:focus, .app-button:focus { outline: 2px solid var(--text-accent); outline-offset: 2px; }
+
+        /* أداء */
+        .widget, .app-button { will-change: transform; contain: layout style paint; }
+
+        /* تجاوبية */
+        @media (max-width: 1200px) {
+            .main-container { inset: 80px var(--spacing-lg) var(--spacing-lg) var(--spacing-lg); grid-template-columns: 1fr clamp(280px, 33vw, 360px); gap: var(--spacing-lg); }
+            :root { --widget-min: 220px; --widget-row: 160px; }
+        }
+        @media (max-width: 900px) {
+            .main-container { display: flex; flex-direction: column; overflow: auto; }
+            .right-panel { position: relative; top: 0; }
+            .apps { grid-template-columns: repeat(2, minmax(0,1fr)); }
+        }
+        @media (max-width: 620px) {
+            :root { --widget-min: 100%; --widget-row: 140px; }
+            .apps { grid-template-columns: 1fr; }
+            .status { font-size: 13px; height: 36px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .glass { animation: none; }
+            .widget, .app-button { transition: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="canvas">
+        <div class="glass"></div>
+        <div class="grain"></div>
+
+        <!-- شريط الحالة -->
+        <div class="status"><div id="clock">--:--</div></div>
+
+        <!-- التخطيط -->
+        <div class="main-container">
+            <!-- الشبكة اليسرى: ودجات -->
+            <section class="left-panel">
+                <!-- التقويم (عادي) -->
+                <article class="widget" id="wgCal" tabindex="0" role="button" aria-label="التقويم">
+                    <div class="title">📅 التقويم</div>
+                    <div class="content">
+                        <div class="value" id="wgCalVal">--</div>
+                        <div class="sub" id="wgCalMonth">—</div>
+                        <div class="sub" id="wgCalHijri">—</div>
+                    </div>
+                </article>
+
+                <!-- الساعة (عادي) -->
+                <article class="widget" id="wgClock" tabindex="0" role="button" aria-label="الساعة">
+                    <div class="title">🕒 الساعة</div>
+                    <div class="content">
+                        <div class="value" id="wgClockVal">--:--</div>
+                        <div class="sub" id="wgClockDay">—</div>
+                    </div>
+                </article>
+
+                <!-- الحرارة (عادي) -->
+                <article class="widget" id="wgTemp" tabindex="0" role="button" aria-label="درجة الحرارة">
+                    <div class="title">🌡️ الحرارة</div>
+                    <div class="content">
+                        <div class="value" id="wgTempVal">--°</div>
+                        <div class="sub" id="wgTempFeels">—</div>
+                    </div>
+                </article>
+
+                <!-- الطقس (عادي) -->
+                <article class="widget" id="wgWeather" tabindex="0" role="button" aria-label="حالة الطقس">
+                    <div class="title">🌤️ الطقس</div>
+                    <div class="content">
+                        <div class="value" id="wgWeatherVal">—</div>
+                        <div class="sub" id="wgWeatherSub">—</div>
+                    </div>
+                </article>
+
+                <!-- الأذكار (واسعة وطويلة لتشكيل مانشيت مرتب) -->
+                <article class="widget widget--wide widget--tall" id="wgAdhkar" tabindex="0" role="button" aria-label="الأذكار المتنوعة">
+                    <div class="title">✨ أذكار متنوعة</div>
+                    <div class="content">
+                        <div class="value" id="wgAdhkarVal">يتم التحميل...</div>
+                        <div class="sub" id="wgAdhkarSub">يتغير كل 10 ثواني</div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- العمود الأيمن: التطبيقات -->
+            <aside class="right-panel" aria-label="التطبيقات">
+                <div class="app-subtitle">التطبيقات العقارية</div>
+                <div class="apps">
+                    <a href="TEST.HTML" class="app-button" target="_blank" rel="noopener">
+                        <span class="icon">🔍</span><span class="text">بحث العقارات</span>
+                    </a>
+                    <a href="wep.html" class="app-button" target="_blank" rel="noopener">
+                        <span class="icon">📊</span><span class="text">تقرير المطابقات العقارية</span>
+                    </a>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        class EnhancedDashboardApp {
+            constructor() {
+                this.config = {
+                    defaultLocation: { lat: 24.7136, lon: 46.6753 },
+                    updateIntervals: { clock: 1000, weather: 300000, adhkarRotation: 10000, hijri: 3600000 },
+                    apis: {
+                        weather: 'https://api.open-meteo.com/v1/forecast',
+                        aladhan: 'https://api.aladhan.com/v1',
+                    }
+                };
+                this.state = {
+                    location: null, isOnline: navigator.onLine, lastUpdate: {}, timers: {}, adhkarIndex: 0, isVisible: true,
+                };
+                this.adhkarList = [
+                    'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ',
+                    'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
+                    'أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ الَّذِي لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ وَأَتُوبُ إِلَيْهِ',
+                    'اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ',
+                    'رَبِّ اغْفِرْ لِي ذَنْبِي وَخَطَئِي وَجَهْلِي',
+                    'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ الْعَلِيِّ الْعَظِيمِ',
+                    'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ',
+                    'اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ وَرَحْمَتِكَ، فَإِنَّهُ لَا يَمْلِكُهَا إِلَّا أَنْتَ',
+                    'الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ',
+                    'سُبْحَانَ رَبِّيَ الْعَظِيمِ وَبِحَمْدِهِ',
+                    'رَبِّ أَعِنِّي وَلَا تُعِنْ عَلَيَّ، وَانْصُرْنِي وَلَا تَنْصُرْ عَلَيَّ',
+                    'اللَّهُمَّ اهْدِنِي فِيمَنْ هَدَيْتَ، وَعَافِنِي فِيمَنْ عَافَيْتَ',
+                    'رَبَّنَا لَا تُؤَاخِذْنَا إِنْ نَسِينَا أَوْ أَخْطَأْنَا',
+                    'اللَّهُمَّ بَارِكْ لَنَا فِيمَا رَزَقْتَنَا وَقِنَا عَذَابَ النَّارِ',
+                    'يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ',
+                    'رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي',
+                    'اللَّهُمَّ أَصْلِحْ لِي دِينِي وَدُنْيَايَ وَآخِرَتِي',
+                    'سُبْحَانَ اللَّهِ عَدَدَ خَلْقِهِ وَرِضَا نَفْسِهِ وَزِنَةَ عَرْشِهِ وَمِدَادَ كَلِمَاتِهِ',
+                    'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ وَالْعَجْزِ وَالْكَسَلِ',
+                    'رَبِّ زِدْنِي عِلْمًا وَارْزُقْنِي فَهْمًا',
+                    'اللَّهُمَّ اكْفِنِي بِحَلَالِكَ عَنْ حَرَامِكَ وَأَغْنِنِي بِفَضْلِكَ عَمَّنْ سِوَاكَ',
+                    'رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ',
+                    'اللَّهُمَّ بَلِّغْنَا رَمَضَانَ وَأَعِنَّا عَلَى صِيَامِهِ وَقِيَامِهِ',
+                    'بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ',
+                    'اللَّهُمَّ طَهِّرْ قَلْبِي مِنَ النِّفَاقِ وَعَمَلِي مِنَ الرِّيَاءِ'
+                ];
+                this.init();
+            }
+
+            async init() {
+                try {
+                    this.setupEventListeners();
+                    await this.requestLocation();
+                    this.startClockUpdate();
+                    this.updateCalendar();
+                    await this.loadAllData();
+                    this.setupPeriodicUpdates();
+                    this.setupPerformanceOptimizations();
+                } catch (error) {
+                    console.error('App initialization failed:', error);
+                    this.showError('فشل في تحميل التطبيق');
+                }
+            }
+
+            setupEventListeners() {
+                window.addEventListener('online', () => { this.state.isOnline = true; this.loadAllData(); });
+                window.addEventListener('offline', () => { this.state.isOnline = false; this.showOfflineMessage(); });
+                document.addEventListener('visibilitychange', () => {
+                    this.state.isVisible = !document.hidden;
+                    if (this.state.isVisible) this.loadAllData();
+                });
+                window.addEventListener('error', (e) => console.error('Global error:', e.error));
+                window.addEventListener('unhandledrejection', (e) => console.error('Unhandled promise rejection:', e.reason));
+            }
+
+            async requestLocation() {
+                if (!navigator.geolocation) { this.state.location = this.config.defaultLocation; return; }
+                try {
+                    const position = await new Promise((res, rej) => {
+                        navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 });
+                    });
+                    this.state.location = { lat: position.coords.latitude, lon: position.coords.longitude };
+                } catch {
+                    console.warn('Location access denied, using default location');
+                    this.state.location = this.config.defaultLocation;
+                }
+            }
+
+            getArabicDate(date = new Date()) {
+                const days = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+                const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+                return { dayName: days[date.getDay()], day: date.getDate(), monthName: months[date.getMonth()], year: date.getFullYear() };
+            }
+
+            startClockUpdate() {
+                const updateClock = () => {
+                    if (!this.state.isVisible) return;
+                    const now = new Date();
+                    const hours = now.getHours();
+                    const minutes = now.getMinutes().toString().padStart(2, '0');
+                    const displayHours = ((hours % 12) || 12).toString();
+                    const timeString = `${displayHours}:${minutes}`;
+                    this.updateElement('wgClockVal', timeString);
+                    this.updateElement('clock', timeString);
+                    this.updateElement('wgClockDay', this.getArabicDate(now).dayName);
+                };
+                updateClock();
+                this.state.timers.clock = setInterval(updateClock, this.config.updateIntervals.clock);
+            }
+
+            updateCalendar() {
+                const now = new Date();
+                const a = this.getArabicDate(now);
+                this.updateElement('wgCalVal', a.day);
+                this.updateElement('wgCalMonth', `${a.monthName} ${a.year}`);
+            }
+
+            async loadHijriDate() {
+                if (!this.state.isOnline) return;
+                try {
+                    const now = new Date();
+                    const [year, month, day] = now.toISOString().split('T')[0].split('-');
+                    const response = await this.fetchWithTimeout(`${this.config.apis.aladhan}/gToH?date=${day}-${month}-${year}`, 5000);
+                    const data = await response.json();
+                    const hijri = data?.data?.hijri;
+                    if (hijri) {
+                        this.updateElement('wgCalHijri', `${hijri.day} ${hijri.month.ar} ${hijri.year}هـ`);
+                        this.state.lastUpdate.hijri = Date.now();
+                    }
+                } catch (error) {
+                    console.warn('Hijri date load failed:', error);
+                    this.updateElement('wgCalHijri', 'غير متاح');
+                }
+            }
+
+            async loadWeather() {
+                if (!this.state.isOnline || !this.state.location) return;
+                try {
+                    this.setLoading(['wgTempVal','wgWeatherVal']);
+                    const { lat, lon } = this.state.location;
+                    const url = `${this.config.apis.weather}?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto&forecast_days=1`;
+                    const response = await this.fetchWithTimeout(url, 8000);
+                    const data = await response.json();
+                    const current = data.current;
+                    const temp = Math.round(current.temperature_2m || 0);
+                    const feels = Math.round(current.apparent_temperature || temp);
+                    const windSpeed = Math.round(current.wind_speed_10m || 0);
+                    this.updateElement('wgTempVal', `${temp}°`);
+                    this.updateElement('wgTempFeels', `الإحساس: ${feels}°`);
+                    this.updateElement('wgWeatherVal', this.getWeatherDescription(current.weather_code));
+                    this.updateElement('wgWeatherSub', `رياح ${windSpeed} كم/س`);
+                    this.clearLoading(['wgTempVal','wgWeatherVal']);
+                    this.state.lastUpdate.weather = Date.now();
+                } catch (error) {
+                    console.warn('Weather load failed:', error);
+                    this.clearLoading(['wgTempVal','wgWeatherVal']);
+                    this.updateElement('wgTempVal', '--°');
+                    this.updateElement('wgTempFeels', 'غير متاح');
+                    this.updateElement('wgWeatherVal', 'غير متاح');
+                    this.updateElement('wgWeatherSub', 'غير متاح');
+                }
+            }
+
+            getWeatherDescription(code) {
+                const map = {0:'صحو',1:'غائم جزئياً',2:'غائم',3:'غائم كلياً',45:'ضباب',48:'ضباب متجمد',51:'رذاذ خفيف',53:'رذاذ',55:'رذاذ كثيف',61:'مطر خفيف',63:'مطر',65:'مطر غزير',71:'ثلج خفيف',73:'ثلج',75:'ثلج كثيف',80:'زخات خفيفة',81:'زخات',82:'زخات غزيرة',95:'عواصف رعدية',96:'عواصف مع برد',99:'عواصف مع برد كثيف'};
+                return map[code] || 'متغير';
+            }
+
+            startAdhkarRotation() {
+                const updateAdhkar = () => {
+                    if (!this.state.isVisible || this.adhkarList.length === 0) return;
+                    const currentThikr = this.adhkarList[this.state.adhkarIndex];
+                    this.updateElement('wgAdhkarVal', currentThikr);
+                    this.state.adhkarIndex = (this.state.adhkarIndex + 1) % this.adhkarList.length;
+                };
+                if (this.state.timers.adhkarRotation) clearInterval(this.state.timers.adhkarRotation);
+                updateAdhkar();
+                this.state.timers.adhkarRotation = setInterval(updateAdhkar, this.config.updateIntervals.adhkarRotation);
+            }
+
+            async loadAllData() {
+                if (!this.state.isOnline) return;
+                await Promise.allSettled([ this.loadHijriDate(), this.loadWeather() ]);
+                this.startAdhkarRotation();
+            }
+
+            setupPeriodicUpdates() {
+                setInterval(() => { if (this.state.isOnline && this.state.isVisible) this.loadWeather(); }, this.config.updateIntervals.weather);
+                setInterval(() => { if (this.state.isOnline && this.state.isVisible) this.loadHijriDate(); }, this.config.updateIntervals.hijri);
+            }
+
+            setupPerformanceOptimizations() {
+                const preferReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+                if (preferReducedMotion.matches) document.documentElement.style.setProperty('--animation-duration', '0s');
+                // مكان مخصص لتحسينات مستقبلية
+            }
+
+            async fetchWithTimeout(url, timeout = 5000) {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeout);
+                try {
+                    const response = await fetch(url, { signal: controller.signal, cache: 'no-cache' });
+                    clearTimeout(timeoutId);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    return response;
+                } catch (error) {
+                    clearTimeout(timeoutId);
+                    throw error;
+                }
+            }
+
+            updateElement(id, content) {
+                const el = document.getElementById(id);
+                if (el && el.textContent !== content) el.textContent = content;
+            }
+
+            setLoading(ids) {
+                ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.closest('.widget')?.classList.add('loading');
+                });
+            }
+            clearLoading(ids) {
+                ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.closest('.widget')?.classList.remove('loading');
+                });
+            }
+
+            showError(msg) { console.error(msg); }
+            showOfflineMessage() { console.warn('التطبيق غير متصل بالإنترنت'); }
+            cleanup() { Object.values(this.state.timers).forEach(t => t && clearInterval(t)); }
+        }
+
+        const app = new EnhancedDashboardApp();
+        window.addEventListener('beforeunload', () => app.cleanup());
+    </script>
+</body>
+</html>

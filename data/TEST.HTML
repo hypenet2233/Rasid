@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>بحث عقارات باستخدام Google API</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 40px;
+      direction: rtl;
+      text-align: right;
+    }
+
+    .search-container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .search-box input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+
+    .search-button {
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    .search-button button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .search-button button:hover {
+      background-color: #0056b3;
+    }
+
+    .results {
+      margin-top: 30px;
+      padding: 15px;
+      background-color: #e9ecef;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    .result-item {
+      margin-bottom: 20px;
+    }
+
+    .result-item a {
+      color: #007bff;
+      font-weight: bold;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="search-container">
+    <h2>بحث عن عقار (منتجات عقارية فقط - آخر شهر)</h2>
+
+    <div class="search-box">
+      <input type="text" id="city" placeholder="المدينة">
+      <input type="text" id="propertyType" placeholder="نوع العقار (مثلاً: شقة، فيلا)">
+    </div>
+
+    <div class="search-button">
+      <button onclick="searchGoogle()">بحث</button>
+    </div>
+
+    <div class="results" id="results">
+      <!-- نتائج البحث ستظهر هنا -->
+    </div>
+  </div>
+
+  <script>
+    const API_KEY = "AIzaSyDePdwd1r2oz5fabB-99unictEjB53eSls";
+    const CX = "f78d2ddf3d80e480c";
+
+    function searchGoogle() {
+      const city = document.getElementById('city').value.trim();
+      const propertyType = document.getElementById('propertyType').value.trim();
+      const baseTerms = "عقار OR شقة OR فيلا OR للبيع";
+      const query = [city, propertyType, baseTerms].filter(Boolean).join(' ');
+
+      const url = `https://www.googleapis.com/customsearch/v1?key=${API_KEY}&cx=${CX}&q=${encodeURIComponent(query)}&dateRestrict=m1`;
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          const resultsDiv = document.getElementById('results');
+          resultsDiv.innerHTML = '';
+
+          if (data.items && data.items.length > 0) {
+            data.items.forEach(item => {
+              const div = document.createElement('div');
+              div.className = 'result-item';
+              div.innerHTML = `
+                <a href="${item.link}" target="_blank">${item.title}</a><br>
+                <small>${item.snippet}</small>
+              `;
+              resultsDiv.appendChild(div);
+            });
+          } else {
+            resultsDiv.innerHTML = 'لم يتم العثور على نتائج عقارية حديثة.';
+          }
+        })
+        .catch(error => {
+          console.error('خطأ:', error);
+          document.getElementById('results').innerHTML = 'حدث خطأ أثناء الاتصال بـ Google API.';
+        });
+    }
+  </script>
+
+</body>
+</html>
