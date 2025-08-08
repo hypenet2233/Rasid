@@ -3,19 +3,15 @@ import json
 from flask import Flask, jsonify, Response, send_file
 
 def resolve_results_dir():
-    # 1) متغير بيئة
     env_dir = os.environ.get("RESULTS_DIR")
     if env_dir and os.path.isdir(env_dir):
         return env_dir
-    # 2) مسار Render الثابت
     render_dir = "/opt/render/project/src/data"
     if os.path.isdir(render_dir):
         return render_dir
-    # 3) متغير بيئة مخصص (محلي)
     custom_dir = os.environ.get("RESULTS_DIR_CUSTOM")
     if custom_dir and os.path.isdir(custom_dir):
         return custom_dir
-    # 4) مجلد data داخل المشروع
     local_dir = os.path.join(os.path.dirname(__file__), "data")
     return local_dir
 
@@ -53,7 +49,6 @@ def find_latest_file(extension):
 def load_latest_files():
     global latest_json, latest_txt
     safe_print(f"[BOOT] Scanning dir: {DIRECTORY}")
-
     json_path = find_latest_file('.json')
     txt_path  = find_latest_file('.txt')
 
@@ -81,7 +76,6 @@ def load_latest_files():
 
 @app.before_first_request
 def _warmup_load_files():
-    # يشتغل تحت Gunicorn عند أول ريكوست
     safe_print(f"[WARMUP] Using DIRECTORY={DIRECTORY}")
     try:
         listing = os.listdir(DIRECTORY)
