@@ -1,8 +1,6 @@
 import os
 import json
 from flask import Flask, jsonify, Response, send_file
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
 
 # اختيار مجلد النتائج تلقائي
 def resolve_results_dir():
@@ -11,17 +9,18 @@ def resolve_results_dir():
     if env_dir and os.path.isdir(env_dir):
         return env_dir
     
-    # أولوية 2: متغير بيئة مخصص RESULTS_DIR_CUSTOM (لتشغيل محلي أو بيئات أخرى)
+    # أولوية 2: مسار ثابت في Render
+    render_dir = "/opt/render/project/src/data"
+    if os.path.isdir(render_dir):
+        return render_dir
+
+    # أولوية 3: متغير بيئة مخصص RESULTS_DIR_CUSTOM (لتشغيل محلي أو بيئات أخرى)
     custom_dir = os.environ.get("RESULTS_DIR_CUSTOM")
     if custom_dir and os.path.isdir(custom_dir):
         return custom_dir
     
-    # أولوية 3: مجلد data داخل المشروع
+    # أولوية 4: مجلد data داخل المشروع (افتراضي)
     local_dir = os.path.join(os.path.dirname(__file__), "data")
-    if os.path.isdir(local_dir):
-        return local_dir
-    
-    # إذا لم يوجد أي من أعلاه، نرجع المجلد المحلي حتى لو غير موجود
     return local_dir
 
 DIRECTORY = resolve_results_dir()
@@ -78,15 +77,6 @@ def load_latest_files():
     else:
         latest_txt = ""
 
-class FileChangeHandler(FileSystemEventHandler):
-    def on_any_event(self, event):
-        if event.is_directory:
-            return
-        if event.event_type in ('created', 'modified'):
-            if event.src_path.endswith(('.json', '.txt')):
-                safe_print(f"[تحديث]: {event.src_path}")
-                load_latest_files()
-
 @app.route("/")
 def index():
     if os.path.exists(HTML_FILE):
@@ -110,13 +100,31 @@ def get_text():
 
 def run_server():
     load_latest_files()
-    if os.path.isdir(DIRECTORY):
-        observer = Observer()
-        observer.schedule(FileChangeHandler(), DIRECTORY, recursive=False)
-        observer.start()
-    else:
+
+    # Render لا يحتاج مراقبة الملفات، لكن إذا شغّلته محليًا ممكن تفعلها
+    try:
+        from watchdog.observers import Observer
+        from watchdog.events import FileSystemEventHandler
+
+        class FileChangeHandler(FileSystemEventHandler):
+            def on_any_event(self, event):
+                if event.is_directory:
+                    return
+                if event.event_type in ('created', 'modified'):
+                    if event.src_path.endswith(('.json', '.txt')):
+                        safe_print(f"[تحديث]: {event.src_path}")
+                        load_latest_files()
+
+        if os.path.isdir(DIRECTORY):
+            observer = Observer()
+            observer.schedule(FileChangeHandler(), DIRECTORY, recursive=False)
+            observer.start()
+        else:
+            observer = None
+            safe_print(f"⚠️ مجلد النتائج غير موجود: {DIRECTORY}")
+    except ImportError:
         observer = None
-        safe_print(f"⚠️ مجلد النتائج غير موجود: {DIRECTORY}")
+        safe_print("⚠️ مكتبة watchdog غير مثبتة، سيتم التشغيل بدون مراقبة ملفات.")
 
     port = int(os.environ.get("PORT", 5000))
     safe_print(f"🚀 Server running at http://0.0.0.0:{port}")
